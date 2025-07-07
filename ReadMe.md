@@ -118,3 +118,37 @@ python3 main.py products.csv --median "price"
 ```bash
 pytest -v test_main.py
 ```
+
+### Процент покрытия код тестами
+
+```bash
+pytest --cov=main                  
+```
+
+```bash
+============ test session starts ============
+platform linux -- Python 3.12.7, pytest-8.4.1, pluggy-1.6.0
+rootdir: ****
+plugins: mock-3.14.1, cov-6.2.1
+collected 21 items                                                             
+
+test_main.py .....................                                       [100%]
+
+============ tests coverage ============
+___ coverage: platform linux, python 3.12.7-final-0 ___
+
+Name      Stmts   Miss  Cover
+-----------------------------
+main.py     174     26    85%
+-----------------------------
+TOTAL       174     26    85%
+============ 21 passed in 0.37s =============
+```
+
+
+* В формате **json**
+
+```bash
+pytest --cov-report json --cov=main
+```
+- coverage.json
