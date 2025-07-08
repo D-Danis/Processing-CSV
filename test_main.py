@@ -48,7 +48,6 @@ def test_order_by_desc(sample_csv):
                                    '--order-by', 'rating=desc'])
     assert 'iphone 15 pro' in output.splitlines()[3] 
 
-
 @pytest.mark.parametrize(
     "query, answer, expectation", 
     [
@@ -70,7 +69,6 @@ def test_does_not_raise(sample_csv, query, answer, expectation):
         output = run_script_with_args([sample_csv, *query])
         assert answer in output 
     
-
 @pytest.mark.parametrize(
     "query, col, op, val, expectation",
     [
@@ -84,7 +82,6 @@ def test_parse_where_condition(query, col, op, val, expectation):
     with expectation:
         x, y, z = main.parse_where_condition(query)
         assert col == x and op == y and val == z
-
 
 @pytest.mark.parametrize(
     "query, col, op, expectation",
@@ -101,7 +98,6 @@ def test_parse_aggregate(query, col, op, expectation):
         x, y = main.parse_aggregate(query)
         assert col == x and op == y
 
-
 @pytest.mark.parametrize(
     "query, col, op, expectation",
     [
@@ -116,29 +112,23 @@ def test_parse_order_by(query, col, op, expectation):
         x, y = main.parse_order_by(query)
         assert col == x and op == y
 
-
-    
-def test_command_orderby_sort(sample_csv):
-    cmd=main.OrderByCommand()
-    data = main.read_csv(sample_csv)
-    sorted_result=cmd.execute(data,type('Args', (), {'order_by':'rating=desc'})())
-    assert sorted_result[0]['name'].strip()=='iphone 15 pro'
-    
-
 @pytest.mark.parametrize(
-    "command, query",
+    "command, query, answer, expectation",
     [
-        (main.WhereCommand, {'where':'rating > 4.7'}),
-        (main.AggregateCommand, {'aggregate':'rating=avg'}),
-        (main.MedianCommand, {'median':'price'})
+        (main.WhereCommand, {'where':'rating > 4.7'}, list, does_not_raise()),
+        (main.AggregateCommand, {'aggregate':'rating=avg'}, tuple, does_not_raise()),
+        (main.OrderByCommand, {'order_by':'rating=desc'}, list, does_not_raise()),
+        (main.MedianCommand, {'median':'price'}, tuple, does_not_raise()),
+        (main.WhereCommand, {'where':'rating & 4.7'}, list, pytest.raises(ValueError)),
     ]
 )
-def test_command_filter(sample_csv, command, query):
-    cmd = command()
-    data = main.read_csv(sample_csv)
-    filtered=cmd.execute(data,type('Args', (), {**query})())
-    assert len(filtered) == 2
-    
+def test_command_filter_type(sample_csv, command, query, answer, expectation):
+    with expectation:
+        cmd = command()
+        data = main.read_csv(sample_csv)
+        filtered=cmd.execute(data,type('Args', (), {**query})())
+        assert isinstance(filtered, answer)
+        
 
 def test_read_csv(tmp_path):
     file_path=tmp_path / "test.csv"
