@@ -72,45 +72,50 @@ def test_does_not_raise(sample_csv, query, answer, expectation):
     
 
 @pytest.mark.parametrize(
-    "query, col, op, val",
+    "query, col, op, val, expectation",
     [
-        ('rating > 4.5', 'rating', '>', '4.5'),
-        ('brand = apple', 'brand', '=', 'apple'),
-        ('price < 1000', 'price', '<', '1000')
+        ('rating > 4.5', 'rating', '>', '4.5', does_not_raise()),
+        ('brand = apple', 'brand', '=', 'apple', does_not_raise()),
+        ('price < 1000', 'price', '<', '1000', does_not_raise()),
+        ('price $ 1000', 'price', '<', '1000', pytest.raises(ValueError)),
     ]
 )
-def test_parse_where_condition(query, col, op, val):
-    x, y, z = main.parse_where_condition(query)
-    assert col == x
-    assert op == y
-    assert val == z
+def test_parse_where_condition(query, col, op, val, expectation):
+    with expectation:
+        x, y, z = main.parse_where_condition(query)
+        assert col == x and op == y and val == z
 
 
 @pytest.mark.parametrize(
-    "query, col, op",
+    "query, col, op, expectation",
     [
-        ('rating=avg', 'rating', 'avg'),
-        ('rating=max', 'rating', 'max'),
-        ('rating=min', 'rating', 'min')
+        ('rating=avg', 'rating', 'avg', does_not_raise()),
+        ('rating=max', 'rating', 'max', does_not_raise()),
+        ('rating=min', 'rating', 'min', does_not_raise()),
+        ('rating=median', 'rating', 'median', pytest.raises(ValueError)),
+        ('rating$min', 'rating', 'min', pytest.raises(ValueError))
     ]
 )
-def test_parse_aggregate(query, col, op):
-    x, y = main.parse_aggregate(query)
-    assert col == x
-    assert op == y
+def test_parse_aggregate(query, col, op, expectation):
+    with expectation:
+        x, y = main.parse_aggregate(query)
+        assert col == x and op == y
 
 
 @pytest.mark.parametrize(
-    "query, col, op",
+    "query, col, op, expectation",
     [
-        ('brand=desc', 'brand', 'desc'),
-        ('brand=asc', 'brand', 'asc')
+        ('brand=desc', 'brand', 'desc', does_not_raise()),
+        ('brand=asc', 'brand', 'asc', does_not_raise()),
+        ('brand<asc', 'brand', 'asc', pytest.raises(ValueError)),
+        ('brand=max', 'brand', 'max', pytest.raises(ValueError))
     ]
 )
-def test_parse_order_by(query, col, op):
-    x, y = main.parse_order_by(query)
-    assert col == x
-    assert op == y
+def test_parse_order_by(query, col, op, expectation):
+    with expectation:
+        x, y = main.parse_order_by(query)
+        assert col == x and op == y
+
 
     
 def test_command_orderby_sort(sample_csv):
@@ -148,9 +153,9 @@ def test_read_csv(tmp_path):
     assert data[0]['a']=='1'
 
 
-def test_main_flow(monkeypatch,tmp_path):
+def test_main_flow(monkeypatch,tmp_path, capfd):
     csv_path=str(tmp_path / "data.csv")
-    with open(csv_path,'w') as f:
+    with open(csv_path, 'w', newline='') as f:
         writer =csv.DictWriter(f,['name','age'])
         writer.writeheader()
         writer.writerow({'name':'Anna','age':'28'})
@@ -160,3 +165,8 @@ def test_main_flow(monkeypatch,tmp_path):
     monkeypatch.setattr('sys.argv', args)
 
     main.main()
+    
+    captured = capfd.readouterr()
+    
+    assert "Ben" in captured.out
+    assert "Anna" not in captured.out
