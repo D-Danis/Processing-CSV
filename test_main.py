@@ -5,16 +5,11 @@ import os
 import csv
 from io import StringIO
 from contextlib import redirect_stdout
-# import sys
-# sys.path.append(os.getcwd())
+from contextlib import nullcontext as does_not_raise
+
 
 import main 
 
-csv_content = """name,brand,price,rating
-                iphone 15 pro,apple,999,4.9
-                galaxy s23 ultra,samsung,1199,4.8
-                redmi note 12,xiaomi,199,4.6
-                poco x5 pro,xiaomi,299,4.4"""
 
 @pytest.fixture
 def sample_csv():
@@ -53,25 +48,29 @@ def test_order_by_desc(sample_csv):
                                    '--order-by', 'rating=desc'])
     assert 'iphone 15 pro' in output.splitlines()[3] 
 
-    
+
 @pytest.mark.parametrize(
-    "query, answer", 
+    "query, answer, expectation", 
     [
-        (['--where', 'rating > 4.5'], 'iphone 15 pro'),
-        (['--where', 'brand = apple'], 'iphone 15 pro'),
-        (['--aggregate', 'rating=avg'], '4.67'),
+        (['--where', 'rating > 4.5'], 'iphone 15 pro', does_not_raise()),
+        (['--where', 'invalid'], 'iphone 15 pro', pytest.raises(ValueError)),
+        (['--aggregate', 'rating=avg'], '4.67', does_not_raise()),
+        (['--aggregate', 'invalid'], '4.67', pytest.raises(ValueError)),
         (['--where', 'brand = xiaomi',
-          '--aggregate', 'rating=min'], '4.4'),
-        (['--median', 'rating'], '4'),
+          '--aggregate', 'rating=min'], '4.4', does_not_raise()),
+        (['--median', 'rating'], '4', does_not_raise()),
         (['--where', 'rating < 4.7',
           '--order-by', 'rating=asc',
-          '--aggregate', 'rating=max'], '4.6')
+          '--aggregate', 'rating=max'], '4.6', does_not_raise()),
+        (['--where', 'rating > 4.5', 
+         '--order-by', 'invalid'], 'iphone 15 pro', pytest.raises(ValueError))
     ])
-def test_script_filter(sample_csv, query, answer):
-    output = run_script_with_args([sample_csv, *query])
-    assert answer in output 
+def test_does_not_raise(sample_csv, query, answer, expectation):
+    with expectation:
+        output = run_script_with_args([sample_csv, *query])
+        assert answer in output 
+    
 
- 
 @pytest.mark.parametrize(
     "query, col, op, val",
     [
